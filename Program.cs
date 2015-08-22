@@ -49,28 +49,14 @@ namespace Assignment3
             newCust.SaveOrder(newOrder);
             customerArray[arrayIndex++] = newCust;
 */
-
-            // Display Result
+            SaveAndPrint orders = new SaveAndPrint();
             foreach (var c in customerArray)
             {
                 if ( c == null ) break;                     // question
-                Console.WriteLine(c.FirstName + ' ' + c.LastName);
-
-                foreach (var o in c.Orders)
-                {
-                    if (o == null) break;
-                    Console.WriteLine("{0} - {1:C} - {2, 0:N1} (square feet)",
-                        o.OrderedVehicle.Description,
-                        o.Price,
-                        o.OrderedVehicle.CargoCapacity());
-                    Console.WriteLine("Quantity: {0} - Model Name: {1} - Horse Power: {2}",
-                        o.Quantity,
-                        o.Model,
-                        o.OrderedVehicle.HorsePower);
-                }
-                Console.WriteLine();
+                orders.SaveToFile(c);
             }
-            Console.ReadLine();  // for checking result
+
+            orders.Print();
         }
     }
 
@@ -256,7 +242,9 @@ namespace Assignment3
 
     class  SaveAndPrint : IPrint, IFileSave
     {
-        private string orderHistory = "C:\\Orders\\OrderHistory.Txt";
+        private string orderHistory = "C:\\Orders\\OrderHistory.txt";
+        private string backupFile = "C:\\Orders\\OrderHistory.bak";
+
         public void Print()
         {
             if (File.Exists(orderHistory))
@@ -272,13 +260,52 @@ namespace Assignment3
             }
         }
 
-        public void SaveToFile(string[] item)
-        {
+        public void SaveToFile(Customer customer)
+        {            
+            StringCollection linesCollection = readOrderFromCustomer(customer);
+            string[] linesArray = new string[linesCollection.Count];
+            linesCollection.CopyTo(linesArray,0);
+            
             StreamWriter sw = new StreamWriter(orderHistory, true);  // create file if not existed, append
-            foreach (var oneLine in item)
+            
+            foreach (var oneLine in linesArray)
                 sw.WriteLine(oneLine);
             sw.Close();
         }
-    }
+        private StringCollection readOrderFromCustomer(Customer customer)
+        {
+            string nextLine;
+            StringCollection results = new StringCollection();
 
+            Console.WriteLine(customer.FirstName + ' ' + customer.LastName);
+            nextLine = String.Format(customer.FirstName + ' ' + customer.LastName);
+            results.Add(nextLine);
+            foreach (var o in customer.Orders)
+            {
+                if (o == null) break;
+                Console.WriteLine("{0} - {1:C} - {2, 0:N1} (square feet)",
+                    o.OrderedVehicle.Description,
+                    o.Price,
+                    o.OrderedVehicle.CargoCapacity());
+                nextLine=String.Format("{0} - {1:C} - {2, 0:N1} (square feet)",
+                    o.OrderedVehicle.Description,
+                    o.Price,
+                    o.OrderedVehicle.CargoCapacity());
+                results.Add(nextLine);
+
+                Console.WriteLine("Quantity: {0} - Model Name: {1} - Horse Power: {2}",
+                    o.Quantity,
+                    o.Model,
+                    o.OrderedVehicle.HorsePower);
+                nextLine = String.Format("Quantity: {0} - Model Name: {1} - Horse Power: {2}",
+                    o.Quantity,
+                    o.Model,
+                    o.OrderedVehicle.HorsePower);
+                results.Add(nextLine);
+            }
+            Console.WriteLine();
+            return results;
+
+        }
+    }
 }
