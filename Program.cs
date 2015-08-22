@@ -23,13 +23,13 @@ namespace Assignment3
             newOrder.PlaceOrder(ModelName.BMW520);
             newOrder.SaveOrder(newCust, newOrder);
             customerArray[arrayIndex++] = newCust;
-/*
+
             newCust = new Customer();
             newCust.FirstName = "Tom";
             newCust.LastName = "Cruise";
             newOrder = new Order();
             newOrder.PlaceOrder(ModelName.BMW235, 28500, 1); // special offer
-            newCust.SaveOrder(newOrder);
+            newOrder.SaveOrder(newCust, newOrder);
             customerArray[arrayIndex++] = newCust;
 
             // Motocycle customer
@@ -38,7 +38,7 @@ namespace Assignment3
             newCust.LastName = "Jones";
             newOrder = new Order();
             newOrder.PlaceOrder(ModelName.HondaCruiser);
-            newCust.SaveOrder(newOrder);
+            newOrder.SaveOrder(newCust, newOrder);
             customerArray[arrayIndex++] = newCust;
 
             newCust = new Customer();
@@ -46,17 +46,21 @@ namespace Assignment3
             newCust.LastName = "White";
             newOrder = new Order();
             newOrder.PlaceOrder(ModelName.HondaSport, 17500.0, 2); // special offer
-            newCust.SaveOrder(newOrder);
+            newOrder.SaveOrder(newCust, newOrder);
             customerArray[arrayIndex++] = newCust;
-*/
-            SaveAndPrint orders = new SaveAndPrint();
+
+            //------------------------------------------
+            SaveOrders orders = new SaveOrders();
             foreach (var c in customerArray)
             {
                 if ( c == null ) break;                     // question
                 orders.SaveToFile(c);
             }
 
-            orders.Print();
+            Printer pr = new Printer();
+            pr.PrintToConsole();
+
+            orders.DeleteFile();  // for next test
         }
     }
 
@@ -72,30 +76,28 @@ namespace Assignment3
         HondaSport 
     }
 
-    interface IPrint
+    interface IPrintToConsole
     {
-        void Print();
+        void PrintToConsole();
+        void PrintToPrinter();
     }
+    
+
     interface IFileSave
     {
-        void SaveToFile(string[] item);
+        void SaveToFile(Customer item);
     }
 
-
+    interface IFileDelete
+    {
+        void DeleteFile();
+    }
     //public class Customer
     public class Customer
     {
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public Order[] Orders = new Order[5];
-        //private int numOrders = 0;
-
-        /*
-        public void SaveOrder(Order order)
-        {
-            Orders[numOrders++] = order;
-        }
-        */ 
     }
 
     public class Order
@@ -166,9 +168,20 @@ namespace Assignment3
 
         public void SaveOrder(Customer customer, Order order)
         {
-            customer.Orders[customer.Orders.Length] = order;
+            for (int i = 0; i < customer.Orders.Length; i++)
+            {
+                if (customer.Orders[i] == null)
+                {
+                    customer.Orders[i] = order;
+                    break;
+                }
+                else if (i == customer.Orders.Length - 1)
+                {
+                    Console.WriteLine("Exceeds max. number of orders: 5");
+                    break;
+                }
+            }
         }
-
     }
 
     public class Vehicle
@@ -240,25 +253,18 @@ namespace Assignment3
         }
     }
 
-    class  SaveAndPrint : IPrint, IFileSave
+    class  SaveOrders : IFileSave, IFileDelete
     {
-        private string orderHistory = "C:\\Orders\\OrderHistory.txt";
-        private string backupFile = "C:\\Orders\\OrderHistory.bak";
-
-        public void Print()
-        {
-            if (File.Exists(orderHistory))
-            {
-                Console.WriteLine("File not exists - No order records");
-            }
-
-            StreamReader sr = new StreamReader(orderHistory);
-            string nextLine;
-            while ((nextLine = sr.ReadLine()) != null)         
-            {
-                Console.WriteLine(nextLine);
-            }
+        public static string OrderHistory 
+        { 
+            get { return "C:\\Orders\\OrderHistory.txt";}  
         }
+        public static string BackupFile
+        {
+            get { return "C:\\Orders\\OrderHistory.bak"; }
+        }
+        //public static string OrderHistory = "C:\\Orders\\OrderHistory.txt";
+        //public static string BackupFile = "C:\\Orders\\OrderHistory.bak";
 
         public void SaveToFile(Customer customer)
         {            
@@ -266,7 +272,7 @@ namespace Assignment3
             string[] linesArray = new string[linesCollection.Count];
             linesCollection.CopyTo(linesArray,0);
             
-            StreamWriter sw = new StreamWriter(orderHistory, true);  // create file if not existed, append
+            StreamWriter sw = new StreamWriter(OrderHistory, true);  // create file if not existed, append
             
             foreach (var oneLine in linesArray)
                 sw.WriteLine(oneLine);
@@ -277,35 +283,51 @@ namespace Assignment3
             string nextLine;
             StringCollection results = new StringCollection();
 
-            Console.WriteLine(customer.FirstName + ' ' + customer.LastName);
-            nextLine = String.Format(customer.FirstName + ' ' + customer.LastName);
+            nextLine = String.Format("{0}", customer.FirstName + ' ' + customer.LastName);
+
             results.Add(nextLine);
             foreach (var o in customer.Orders)
             {
                 if (o == null) break;
-                Console.WriteLine("{0} - {1:C} - {2, 0:N1} (square feet)",
-                    o.OrderedVehicle.Description,
-                    o.Price,
-                    o.OrderedVehicle.CargoCapacity());
                 nextLine=String.Format("{0} - {1:C} - {2, 0:N1} (square feet)",
                     o.OrderedVehicle.Description,
                     o.Price,
                     o.OrderedVehicle.CargoCapacity());
                 results.Add(nextLine);
 
-                Console.WriteLine("Quantity: {0} - Model Name: {1} - Horse Power: {2}",
-                    o.Quantity,
-                    o.Model,
-                    o.OrderedVehicle.HorsePower);
                 nextLine = String.Format("Quantity: {0} - Model Name: {1} - Horse Power: {2}",
                     o.Quantity,
                     o.Model,
                     o.OrderedVehicle.HorsePower);
                 results.Add(nextLine);
             }
-            Console.WriteLine();
             return results;
 
         }
+
+        public void DeleteFile()
+        {
+            File.Copy(OrderHistory, BackupFile, true); //overwrite
+            File.Delete(OrderHistory);
+        }
+    }
+    class Printer : IPrint
+    {
+        public void PrintToConsole()
+        {
+            if (!File.Exists(SaveOrders.OrderHistory))
+            {
+                Console.WriteLine("File not exists - No order records");
+            }
+
+            StreamReader sr = new StreamReader(SaveOrders.OrderHistory);
+            string nextLine;
+            while ((nextLine = sr.ReadLine()) != null)
+            {
+                Console.WriteLine(nextLine);
+            }
+            sr.Close();
+        }
+       
     }
 }
