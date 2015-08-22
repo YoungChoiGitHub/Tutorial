@@ -4,11 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Assignment2
+namespace Assignment3
 {
-    class Program
+    public class Program
     {
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
             Customer[] customerArray = new Customer[30];
             int arrayIndex = 0;
@@ -19,9 +19,9 @@ namespace Assignment2
             newCust.LastName = "Smith";
             Order newOrder = new Order();
             newOrder.PlaceOrder(ModelName.BMW520);
-            newCust.SaveOrder(newOrder);
+            newOrder.SaveOrder(newCust, newOrder);
             customerArray[arrayIndex++] = newCust;
-
+/*
             newCust = new Customer();
             newCust.FirstName = "Tom";
             newCust.LastName = "Cruise";
@@ -29,8 +29,6 @@ namespace Assignment2
             newOrder.PlaceOrder(ModelName.BMW235, 28500, 1); // special offer
             newCust.SaveOrder(newOrder);
             customerArray[arrayIndex++] = newCust;
-
-
 
             // Motocycle customer
             newCust = new Customer();
@@ -48,7 +46,7 @@ namespace Assignment2
             newOrder.PlaceOrder(ModelName.HondaSport, 17500.0, 2); // special offer
             newCust.SaveOrder(newOrder);
             customerArray[arrayIndex++] = newCust;
-
+*/
 
             // Display Result
             foreach (var c in customerArray)
@@ -59,13 +57,13 @@ namespace Assignment2
                 foreach (var o in c.Orders)
                 {
                     if (o == null) break;
-                    Console.WriteLine("{0} - {1:C} - {2, 0:N1} (square feet)", 
+                    Console.WriteLine("{0} - {1:C} - {2, 0:N1} (square feet)",
                         o.OrderedVehicle.Description,
                         o.Price,
                         o.OrderedVehicle.CargoCapacity());
                     Console.WriteLine("Quantity: {0} - Model Name: {1} - Horse Power: {2}",
                         o.Quantity,
-                        o.Model, 
+                        o.Model,
                         o.OrderedVehicle.HorsePower);
                 }
                 Console.WriteLine();
@@ -76,20 +74,29 @@ namespace Assignment2
 
     public enum ModelName
     {
-        BMW520, BMW320, BMW235, // for Automobile
-        HondaTouring, HondaCruiser, HondaSport // for Motocycle
+        // for Automobile
+        BMW520, 
+        BMW320, 
+        BMW235,
+        // for Motocycle
+        HondaTouring, 
+        HondaCruiser, 
+        HondaSport 
     }
-    public class Customer 
+    //public class Customer
+    public struct Customer
     {
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public Order[] Orders = new Order[5];
-        private int numOrders = 0;
+        //private int numOrders = 0;
 
-        public void SaveOrder(Order order) 
+        /*
+        public void SaveOrder(Order order)
         {
             Orders[numOrders++] = order;
         }
+        */ 
     }
 
     public class Order
@@ -99,6 +106,7 @@ namespace Assignment2
         public int Quantity { get; set; }
         public Vehicle OrderedVehicle { get; set; }
 
+        // needs to be changed -> method injection
         public void PlaceOrder(ModelName modelName)
         {
             switch (modelName)
@@ -127,7 +135,7 @@ namespace Assignment2
         }
 
         public void PlaceOrder(ModelName modelName, double price, int qualtity)
-        { 
+        {
             Model = modelName.ToString();
             Price = price;
             Quantity = qualtity;
@@ -156,60 +164,80 @@ namespace Assignment2
                     break;
             }
         }
+
+        public void SaveOrder(Customer customer, Order order)
+        {
+            customer.Orders[customer.Orders.Length] = order;
+        }
+
     }
 
     public class Vehicle
-    { 
+    {
         public int Wheels { get; set; }
         public int HorsePower { get; set; }
         public string Description { get; set; }
-        public double CargoLength { get; set; }
-        public double CargoWidth { get; set; }
-        public double CargoHeight { get; set; }
+        public virtual double CargoLength { get; set; }
+        public virtual double CargoWidth { get; set; }
+        public virtual double CargoHeight { get; set; }
 
-        public virtual double CargoCapacity() 
+        public virtual double CargoCapacity()
         {
             return CargoLength * CargoWidth * CargoHeight;
         }
     }
 
     public class Automobile : Vehicle
-    { 
+    {
         public Automobile() : this(200, "Automobile", 3.0, 5.0, 2.0)
         {
         }
         public Automobile(int horsePower, string description, double length, double width, double height)
         {
-            Wheels = 4;
-            HorsePower = horsePower;
-            Description = description;
-            CargoLength = length;
-            CargoWidth = width;
-            CargoHeight = height;
+            base.Wheels = 4;
+            base.HorsePower = horsePower;
+            base.Description = description;
+            base.CargoLength = length;
+            base.CargoWidth = width;
+            base.CargoHeight = height;
         }
-
     }
 
     public class Motocycle : Vehicle
     {
-        public double CargoRadius { get; set; }
+        public override double CargoLength 
+        { 
+            get { return base.CargoLength; }
+            set { setLengthAndWidth(value); }
+        }
+        public override double CargoWidth
+        {
+            get { return base.CargoWidth; }
+            set { setLengthAndWidth(value); }
+        }
 
-                public Motocycle() : this(50, "Motocycle", 1.0, 1.0)
+        private void setLengthAndWidth(double value)
+        {
+            base.CargoLength = value;
+            base.CargoWidth = value;
+        }
+
+        public Motocycle() : this(50, "Motocycle", 1.0, 1.0)
         {
         }
-                public Motocycle(int horsePower, string description, double radius, double height)
+        public Motocycle(int horsePower, string description, double radius, double height)
         {
-            Wheels = 2;
-            HorsePower = horsePower;
-            Description = description;
-            CargoRadius = radius;
-            CargoHeight = height;
+            base.Wheels = 2;
+            base.HorsePower = horsePower;
+            base.Description = description;
+            base.CargoWidth = radius;
+            base.CargoLength = radius;
+            base.CargoHeight = height;
         }
 
         public override double CargoCapacity()
         {
- 	        return (Math.PI * CargoRadius * CargoRadius * CargoHeight) * 2; // Both sides
+            return (Math.PI * CargoWidth * CargoLength * CargoHeight) * 2; // Left and Right sides
         }
     }
-
 }
