@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -86,7 +88,7 @@ namespace Assignment3
 
     interface IPrint
     {
-        void Print(string[] item);
+        void Print();
     }
     interface IFileSave
     {
@@ -252,25 +254,30 @@ namespace Assignment3
         }
     }
 
-    class  Printer : IPrint
+    class  SaveAndPrint : IPrint, IFileSave
     {
-        public void Print(string[] item)
+        private string orderHistory = "C:\\Orders\\OrderHistory.Txt";
+        public void Print()
         {
-            foreach (var oneLine in item)
+            if (File.Exists(orderHistory))
             {
-                Console.WriteLine(item);
+                Console.WriteLine("File not exists - No order records");
+            }
+
+            StreamReader sr = new StreamReader(orderHistory);
+            string nextLine;
+            while ((nextLine = sr.ReadLine()) != null)         
+            {
+                Console.WriteLine(nextLine);
             }
         }
-    }
 
-    class FileSave : IFileSave
-    {
         public void SaveToFile(string[] item)
         {
+            StreamWriter sw = new StreamWriter(orderHistory, true);  // create file if not existed, append
             foreach (var oneLine in item)
-            {
-                //String saving routine
-            };
+                sw.WriteLine(oneLine);
+            sw.Close();
         }
     }
 
