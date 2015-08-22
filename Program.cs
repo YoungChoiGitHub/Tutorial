@@ -1,333 +1,115 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Wrox.ProCSharp;
+using Wrox.ProCSharp.JupiterBank;
+using Wrox.ProCSharp.VenusBank;
 
-namespace Assignment3
+namespace Wrox.ProCSharp
 {
-    public class Program
+    class Program
     {
-        public static void Main(string[] args)
+        static void Main(string[] args)
         {
-            Customer[] customerArray = new Customer[30];
-            int arrayIndex = 0;
+            IBankAccount venusAccount = new SaverAccount();
+            ITransferBankAccount jupiterAccount = new CurrentAccount();
+            venusAccount.PayIn(200);
+            jupiterAccount.PayIn(500);
+            jupiterAccount.TransferTo(venusAccount, 100);
+            Console.WriteLine(venusAccount.ToString());
+            Console.WriteLine(jupiterAccount.ToString());
+            Console.ReadLine();
 
-            // Automobile customer
-            Customer newCust = new Customer();
-            newCust.FirstName = "Joe";
-            newCust.LastName = "Smith";
-            Order newOrder = new Order();
-            newOrder.PlaceOrder(ModelName.BMW520);
-            newOrder.SaveOrder(newCust, newOrder);
-            customerArray[arrayIndex++] = newCust;
+        }
+    }
+}
 
-            newCust = new Customer();
-            newCust.FirstName = "Tom";
-            newCust.LastName = "Cruise";
-            newOrder = new Order();
-            newOrder.PlaceOrder(ModelName.BMW235, 28500, 1); // special offer
-            newOrder.SaveOrder(newCust, newOrder);
-            customerArray[arrayIndex++] = newCust;
+namespace Wrox.ProCSharp
+{
+    public interface IBankAccount
+    {
+        void PayIn(decimal amount);
+        bool Widthdraw(decimal amount);
+        decimal Balance { get; }
+    }
 
-            // Motocycle customer
-            newCust = new Customer();
-            newCust.FirstName = "Sally";
-            newCust.LastName = "Jones";
-            newOrder = new Order();
-            newOrder.PlaceOrder(ModelName.HondaCruiser);
-            newOrder.SaveOrder(newCust, newOrder);
-            customerArray[arrayIndex++] = newCust;
+    public interface ITransferBankAccount : IBankAccount
+    {
+        bool TransferTo(IBankAccount destination, decimal amount);
+    }
+}
 
-            newCust = new Customer();
-            newCust.FirstName = "Rick";
-            newCust.LastName = "White";
-            newOrder = new Order();
-            newOrder.PlaceOrder(ModelName.HondaSport, 17500.0, 2); // special offer
-            newOrder.SaveOrder(newCust, newOrder);
-            customerArray[arrayIndex++] = newCust;
+namespace Wrox.ProCSharp.VenusBank
+{
+    class SaverAccount : IBankAccount
+    {
+        private decimal balance;
+        public void PayIn(decimal amount)
+        {
+            balance += amount;
+        }
 
-            //------------------------------------------
-            SaveOrders orders = new SaveOrders();
-            foreach (var c in customerArray)
+        public bool Widthdraw(decimal amount)
+        {
+            if (balance >= amount)
             {
-                if ( c == null ) break;                     // question
-                orders.SaveToFile(c);
+                balance -= amount;
+                return true;
             }
+            Console.WriteLine("Widthdrawl attempt failed.");
+            return false;
+        }
 
-            Printer pr = new Printer();
-            pr.PrintToConsole();
+        public decimal Balance
+        {
+            get { return balance; }
+        }
 
-            orders.DeleteFile();  // for next test
+        public override string ToString()
+        {
+            return String.Format("Venus Bank Saver: Balance = {0, 6:C}", balance);
         }
     }
+}
 
-    public enum ModelName
+namespace Wrox.ProCSharp.JupiterBank
+{
+    public class CurrentAccount : ITransferBankAccount
     {
-        // for Automobile
-        BMW520, 
-        BMW320, 
-        BMW235,
-        // for Motocycle
-        HondaTouring, 
-        HondaCruiser, 
-        HondaSport 
-    }
-
-    interface IPrintToConsole
-    {
-        void PrintToConsole();
-        void PrintToPrinter();
-    }
-    
-
-    interface IFileSave
-    {
-        void SaveToFile(Customer item);
-    }
-
-    interface IFileDelete
-    {
-        void DeleteFile();
-    }
-    //public class Customer
-    public class Customer
-    {
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
-        public Order[] Orders = new Order[5];
-    }
-
-    public class Order
-    {
-        public string Model { get; set; }
-        public double Price { get; set; }
-        public int Quantity { get; set; }
-        public Vehicle OrderedVehicle { get; set; }
-
-        // needs to be changed -> method injection
-        public void PlaceOrder(ModelName modelName)
+        private decimal balance;
+        public void PayIn(decimal amount)
         {
-            switch (modelName)
+            balance += amount;
+        }
+
+        public bool Widthdraw(decimal amount)
+        {
+            if (balance >= amount)
             {
-                case ModelName.BMW520:
-                    this.PlaceOrder(modelName, 50000.0, 1);
-                    break;
-                case ModelName.BMW320:
-                    this.PlaceOrder(modelName, 45000.0, 1);
-                    break;
-                case ModelName.BMW235:
-                    this.PlaceOrder(modelName, 30000.0, 1);
-                    break;
-                case ModelName.HondaCruiser:
-                    this.PlaceOrder(modelName, 25000.0, 1);
-                    break;
-                case ModelName.HondaSport:
-                    this.PlaceOrder(modelName, 20000.0, 1);
-                    break;
-                case ModelName.HondaTouring:
-                    this.PlaceOrder(modelName, 15000.0, 1);
-                    break;
-                default:
-                    break;
+                balance -= amount;
+                return true;
             }
+            Console.WriteLine("Widthdrawl attempt failed.");
+            return false;
         }
 
-        public void PlaceOrder(ModelName modelName, double price, int qualtity)
+        public decimal Balance
         {
-            Model = modelName.ToString();
-            Price = price;
-            Quantity = qualtity;
+            get { return balance; }
+        }
 
-            switch (modelName)
+        public bool TransferTo(IBankAccount destination, decimal amount)
+        {
+            bool result;
+            result = Widthdraw(amount);
+            if (result)
             {
-                case ModelName.BMW520:
-                    OrderedVehicle = new Automobile(250, "Automobile", 4.0, 6.0, 2.5);
-                    break;
-                case ModelName.BMW320:
-                    OrderedVehicle = new Automobile(220, "Automobile", 3.5, 5.0, 2);
-                    break;
-                case ModelName.BMW235:
-                    OrderedVehicle = new Automobile();
-                    break;
-                case ModelName.HondaCruiser:
-                    OrderedVehicle = new Motocycle(70, "Motocycle", 1.5, 1.5);
-                    break;
-                case ModelName.HondaSport:
-                    OrderedVehicle = new Motocycle(60, "Motocycle", 1.2, 1.2);
-                    break;
-                case ModelName.HondaTouring:
-                    OrderedVehicle = new Motocycle();
-                    break;
-                default:
-                    break;
+                destination.PayIn(amount);
             }
+            return result;
         }
 
-        public void SaveOrder(Customer customer, Order order)
+        public override string ToString()
         {
-            for (int i = 0; i < customer.Orders.Length; i++)
-            {
-                if (customer.Orders[i] == null)
-                {
-                    customer.Orders[i] = order;
-                    break;
-                }
-                else if (i == customer.Orders.Length - 1)
-                {
-                    Console.WriteLine("Exceeds max. number of orders: 5");
-                    break;
-                }
-            }
-        }
-    }
-
-    public class Vehicle
-    {
-        public int Wheels { get; set; }
-        public int HorsePower { get; set; }
-        public string Description { get; set; }
-        public virtual double CargoLength { get; set; }
-        public virtual double CargoWidth { get; set; }
-        public virtual double CargoHeight { get; set; }
-
-        public virtual double CargoCapacity()
-        {
-            return CargoLength * CargoWidth * CargoHeight;
-        }
-    }
-
-    public class Automobile : Vehicle
-    {
-        public Automobile() : this(200, "Automobile", 3.0, 5.0, 2.0)
-        {
-        }
-        public Automobile(int horsePower, string description, double length, double width, double height)
-        {
-            base.Wheels = 4;
-            base.HorsePower = horsePower;
-            base.Description = description;
-            base.CargoLength = length;
-            base.CargoWidth = width;
-            base.CargoHeight = height;
-        }
-    }
-
-    public class Motocycle : Vehicle
-    {
-        public override double CargoLength 
-        { 
-            get { return base.CargoLength; }
-            set { setLengthAndWidth(value); }
-        }
-        public override double CargoWidth
-        {
-            get { return base.CargoWidth; }
-            set { setLengthAndWidth(value); }
-        }
-
-        private void setLengthAndWidth(double value)
-        {
-            base.CargoLength = value;
-            base.CargoWidth = value;
-        }
-
-        public Motocycle() : this(50, "Motocycle", 1.0, 1.0)
-        {
-        }
-        public Motocycle(int horsePower, string description, double radius, double height)
-        {
-            base.Wheels = 2;
-            base.HorsePower = horsePower;
-            base.Description = description;
-            base.CargoWidth = radius;
-            base.CargoLength = radius;
-            base.CargoHeight = height;
-        }
-
-        public override double CargoCapacity()
-        {
-            return (Math.PI * CargoWidth * CargoLength * CargoHeight) * 2; // Left and Right sides
-        }
-    }
-
-    class  SaveOrders : IFileSave, IFileDelete
-    {
-        public static string OrderHistory 
-        { 
-            get { return "C:\\Orders\\OrderHistory.txt";}  
-        }
-        public static string BackupFile
-        {
-            get { return "C:\\Orders\\OrderHistory.bak"; }
-        }
-        //public static string OrderHistory = "C:\\Orders\\OrderHistory.txt";
-        //public static string BackupFile = "C:\\Orders\\OrderHistory.bak";
-
-        public void SaveToFile(Customer customer)
-        {            
-            StringCollection linesCollection = readOrderFromCustomer(customer);
-            string[] linesArray = new string[linesCollection.Count];
-            linesCollection.CopyTo(linesArray,0);
-            
-            StreamWriter sw = new StreamWriter(OrderHistory, true);  // create file if not existed, append
-            
-            foreach (var oneLine in linesArray)
-                sw.WriteLine(oneLine);
-            sw.Close();
-        }
-        private StringCollection readOrderFromCustomer(Customer customer)
-        {
-            string nextLine;
-            StringCollection results = new StringCollection();
-
-            nextLine = String.Format("{0}", customer.FirstName + ' ' + customer.LastName);
-
-            results.Add(nextLine);
-            foreach (var o in customer.Orders)
-            {
-                if (o == null) break;
-                nextLine=String.Format("{0} - {1:C} - {2, 0:N1} (square feet)",
-                    o.OrderedVehicle.Description,
-                    o.Price,
-                    o.OrderedVehicle.CargoCapacity());
-                results.Add(nextLine);
-
-                nextLine = String.Format("Quantity: {0} - Model Name: {1} - Horse Power: {2}",
-                    o.Quantity,
-                    o.Model,
-                    o.OrderedVehicle.HorsePower);
-                results.Add(nextLine);
-            }
-            return results;
-
-        }
-
-        public void DeleteFile()
-        {
-            File.Copy(OrderHistory, BackupFile, true); //overwrite
-            File.Delete(OrderHistory);
-        }
-    }
-    class Printer : IPrint
-    {
-        public void PrintToConsole()
-        {
-            if (!File.Exists(SaveOrders.OrderHistory))
-            {
-                Console.WriteLine("File not exists - No order records");
-            }
-
-            StreamReader sr = new StreamReader(SaveOrders.OrderHistory);
-            string nextLine;
-            while ((nextLine = sr.ReadLine()) != null)
-            {
-                Console.WriteLine(nextLine);
-            }
-            sr.Close();
-        }
-       
+            return String.Format("Jupiter Bank Current Account: Balance = {0, 6:C}", balance);
+        }     
     }
 }
