@@ -51,7 +51,7 @@ namespace Assignment3
             // Display Result
             foreach (var c in customerArray)
             {
-                if (c == null) break;
+                if ( c == null ) break;                     // question
                 Console.WriteLine(c.FirstName + ' ' + c.LastName);
 
                 foreach (var o in c.Orders)
@@ -83,8 +83,19 @@ namespace Assignment3
         HondaCruiser, 
         HondaSport 
     }
+
+    interface IPrint
+    {
+        void Print(string[] item);
+    }
+    interface IFileSave
+    {
+        void SaveToFile(string[] item);
+    }
+
+
     //public class Customer
-    public struct Customer
+    public class Customer
     {
         public string FirstName { get; set; }
         public string LastName { get; set; }
@@ -240,4 +251,27 @@ namespace Assignment3
             return (Math.PI * CargoWidth * CargoLength * CargoHeight) * 2; // Left and Right sides
         }
     }
+
+    class  Printer : IPrint
+    {
+        public void Print(string[] item)
+        {
+            foreach (var oneLine in item)
+            {
+                Console.WriteLine(item);
+            }
+        }
+    }
+
+    class FileSave : IFileSave
+    {
+        public void SaveToFile(string[] item)
+        {
+            foreach (var oneLine in item)
+            {
+                //String saving routine
+            };
+        }
+    }
+
 }
