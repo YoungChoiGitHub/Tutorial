@@ -16,6 +16,7 @@ namespace HelloWorld
 	/* add comment */
 	Console.Readline(); // for debugging
 	// add comment
+	// changes made from clone directory
 
 	// add comment from master
         }
