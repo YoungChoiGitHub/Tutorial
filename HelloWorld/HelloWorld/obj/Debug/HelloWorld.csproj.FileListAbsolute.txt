@@ -1,0 +1,6 @@
+C:\Tutorial\Git\HelloWorld\HelloWorld\bin\Debug\HelloWorld.exe.config
+C:\Tutorial\Git\HelloWorld\HelloWorld\bin\Debug\HelloWorld.exe
+C:\Tutorial\Git\HelloWorld\HelloWorld\bin\Debug\HelloWorld.pdb
+C:\Tutorial\Git\HelloWorld\HelloWorld\obj\Debug\HelloWorld.csprojResolveAssemblyReference.cache
+C:\Tutorial\Git\HelloWorld\HelloWorld\obj\Debug\HelloWorld.exe
+C:\Tutorial\Git\HelloWorld\HelloWorld\obj\Debug\HelloWorld.pdb
