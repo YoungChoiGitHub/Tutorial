@@ -21,7 +21,7 @@ namespace Assignment3
             newCust.LastName = "Smith";
             Order newOrder = new Order();
             newOrder.PlaceOrder(ModelName.BMW520);
-            newOrder.SaveOrder(newCust, newOrder);
+            newOrder.ConfirmOrder(newCust, newOrder);
             customerArray[arrayIndex++] = newCust;
 
             newCust = new Customer();
@@ -29,7 +29,7 @@ namespace Assignment3
             newCust.LastName = "Cruise";
             newOrder = new Order();
             newOrder.PlaceOrder(ModelName.BMW235, 28500, 1); // special offer
-            newOrder.SaveOrder(newCust, newOrder);
+            newOrder.ConfirmOrder(newCust, newOrder);
             customerArray[arrayIndex++] = newCust;
 
             // Motocycle customer
@@ -38,7 +38,7 @@ namespace Assignment3
             newCust.LastName = "Jones";
             newOrder = new Order();
             newOrder.PlaceOrder(ModelName.HondaCruiser);
-            newOrder.SaveOrder(newCust, newOrder);
+            newOrder.ConfirmOrder(newCust, newOrder);
             customerArray[arrayIndex++] = newCust;
 
             newCust = new Customer();
@@ -46,11 +46,11 @@ namespace Assignment3
             newCust.LastName = "White";
             newOrder = new Order();
             newOrder.PlaceOrder(ModelName.HondaSport, 17500.0, 2); // special offer
-            newOrder.SaveOrder(newCust, newOrder);
+            newOrder.ConfirmOrder(newCust, newOrder);
             customerArray[arrayIndex++] = newCust;
 
-            //------------------------------------------
-            SaveOrders orders = new SaveOrders();
+            // save and print the order history
+            OrdersBackup orders = new OrdersBackup();
             foreach (var c in customerArray)
             {
                 if ( c == null ) break;                     // question
@@ -135,11 +135,15 @@ namespace Assignment3
             }
         }
 
-        public void PlaceOrder(ModelName modelName, double price, int qualtity)
+        public void PlaceOrder(ModelName modelName, double price, int quantity)
         {
             Model = modelName.ToString();
+            if (price < 10000.0)
+                throw new ArgumentOutOfRangeException("price");
             Price = price;
-            Quantity = qualtity;
+            if (quantity > 2)
+                throw new ArgumentOutOfRangeException("quantity");
+            Quantity = quantity;
 
             switch (modelName)
             {
@@ -166,7 +170,7 @@ namespace Assignment3
             }
         }
 
-        public void SaveOrder(Customer customer, Order order)
+        public void ConfirmOrder(Customer customer, Order order)
         {
             for (int i = 0; i < customer.Orders.Length; i++)
             {
@@ -253,9 +257,9 @@ namespace Assignment3
         }
     }
 
-    class  SaveOrders : IFileSave, IFileDelete
+    class  OrdersBackup : IFileSave, IFileDelete
     {
-        public static string OrderHistory 
+        public static string OrderHistoryFile 
         { 
             get { return "C:\\Orders\\OrderHistory.txt";}  
         }
@@ -263,8 +267,6 @@ namespace Assignment3
         {
             get { return "C:\\Orders\\OrderHistory.bak"; }
         }
-        //public static string OrderHistory = "C:\\Orders\\OrderHistory.txt";
-        //public static string BackupFile = "C:\\Orders\\OrderHistory.bak";
 
         public void SaveToFile(Customer customer)
         {            
@@ -272,7 +274,7 @@ namespace Assignment3
             string[] linesArray = new string[linesCollection.Count];
             linesCollection.CopyTo(linesArray,0);
             
-            StreamWriter sw = new StreamWriter(OrderHistory, true);  // create file if not existed, append
+            StreamWriter sw = new StreamWriter(OrderHistoryFile, true);  // create file if not existed, append
             
             foreach (var oneLine in linesArray)
                 sw.WriteLine(oneLine);
@@ -307,20 +309,20 @@ namespace Assignment3
 
         public void DeleteFile()
         {
-            File.Copy(OrderHistory, BackupFile, true); //overwrite
-            File.Delete(OrderHistory);
+            File.Copy(OrderHistoryFile, BackupFile, true); //overwrite
+            File.Delete(OrderHistoryFile);
         }
     }
     class Printer : IPrint
     {
         public void PrintToConsole()
         {
-            if (!File.Exists(SaveOrders.OrderHistory))
+            if (!File.Exists(OrdersBackup.OrderHistoryFile))
             {
                 Console.WriteLine("File not exists - No order records");
             }
 
-            StreamReader sr = new StreamReader(SaveOrders.OrderHistory);
+            StreamReader sr = new StreamReader(OrdersBackup.OrderHistoryFile);
             string nextLine;
             while ((nextLine = sr.ReadLine()) != null)
             {
