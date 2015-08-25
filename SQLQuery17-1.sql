@@ -388,6 +388,82 @@ exec Proc_InsertCustomer
 	@FirstName = 'Tim', 
 	@LastName = 'Smith';
 
+---------------------------------------------------------------------------
+-- 7. Log all updates to Customer table to CusAudit table. 
+--    > Indicate the previous and new values of data, 
+--    > the date and time and the login name of the person who made the changes. (4 marks)
+
+IF OBJECT_ID('CusAudit') IS NOT NULL
+DROP TABLE CusAudit;
+GO
+
+CREATE TABLE CusAudit 
+(
+  PreCustomerID INT NULL, PreFirstName NVARCHAR(50) NULL, PreLastName NVARCHAR(50) NULL,
+  NewCustomerID INT NULL, NewFirstName NVARCHAR(50) NULL, NewLastName NVARCHAR(50) NULL,
+  ModifiedBy NVARCHAR(50) NOT NULL,
+  DateModified DATETIME NOT NULL
+);
+GO
+
+IF OBJECT_ID('tr_ModificationLog_Customer', 'TR') IS NOT NULL
+DROP TRIGGER tr_ModificationLog_Customer;
+GO
+
+CREATE TRIGGER tr_ModificationLog_Customer
+ON Customer
+AFTER DELETE, INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+	DECLARE @PreCustomerID as INT, @PreFirstName as NVARCHAR(50), @PreLastName as NVARCHAR(50);
+	DECLARE @NewCustomerID as INT, @NewFirstName as NVARCHAR(50), @NewLastName as NVARCHAR(50);
+	DECLARE @ModifiedBy as NVARCHAR(50); 
+	DECLARE @DateModified as DATETIME;
+	
+	select @DateModified = SYSDATETIME();
+	select @ModifiedBy = ORIGINAL_LOGIN();
+	select @PreCustomerID = CustomerID, @PreFirstName = FirstName, @PreLastName = LastName from deleted;
+	select @NewCustomerID = CustomerID, @NewFirstName = FirstName, @NewLastName = LastName from inserted;
+	Insert INTO CusAudit
+	VALUES (@PreCustomerID, @PreFirstName, @PreLastName, 
+			@NewCustomerID, @NewFirstName, @NewLastName,
+			@ModifiedBy,
+			@DateModified);
+	SELECT * FROM CusAudit; -- For debugging
+END;
+GO
+
+---
+select *
+from Customer
+GO
+
+select *
+from CusAudit
+GO
+
+update Customer
+set FirstName = 'Ron'
+where CustomerID = 1002;
+go
+
+INSERT INTO Customer (CustomerID, FirstName, LastName)
+VALUES (1025, 'Rob', 'Smith');
+
+delete Customer
+where CustomerID = 1025;
+
+
+
+
+select CURRENT_USER;
+select SYSDATETIME()
+select SYSTEM_USER
+select ORIGINAL_LOGIN()
+select SESSION_USER
+select @@SERVERNAME
+
 CREATE PROCEDURE dbo.Sample_Procedure 
     @param1 int = 0,
     @param2 int  
@@ -398,8 +474,7 @@ EXEC Proc_InsertCustomer @FirstName ='AAb', @LastName ='BBc', @CustomerID = 1009
 EXEC Proc_InsertCustomer @customerID = -1;
 go
 
-select *
-from Customer
+
 
 select max(CustomerID)
 from Customer
