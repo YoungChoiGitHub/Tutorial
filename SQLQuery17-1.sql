@@ -2,26 +2,33 @@
 -----  Assignment 2  -----
 --------------------------
 
+
+---------------------------------------------------------------------------
 -- 1. Create a database named db_yourfirstname
+
 
 USE master;
 GO
 
 CREATE DATABASE db_YoungChoi;
 GO
+
 -- Verify
 SELECT name, size AS [Number of Pages(8KB) ]
 FROM sys.master_files
 WHERE name = N'db_YoungChoi';
 GO
 
+-----------------------------------------------------------------------------
 -- 2. Create Customer table with at least the following columns: (1/2 mark)
 --    CustomerID INT NOT NULL
 --	  FirstName Nvarchar(50 ) NOT NULL
 --	  LastName Nvarchar(50) NOT NULL
 
+
 USE db_YoungChoi;
 GO
+
 
 IF OBJECT_ID('Customer') IS NOT NULL
 DROP TABLE Customer;
@@ -35,6 +42,7 @@ CREATE TABLE Customer
 );
 GO
 
+-- Populate data
 INSERT INTO Customer (CustomerID, FirstName, LastName)
 VALUES (1001, 'John', 'Smith'),
        (1002, 'Tom', 'Johnson'),
@@ -43,14 +51,17 @@ VALUES (1001, 'John', 'Smith'),
 	   (1005, 'Peter', 'Tylor');
 GO
 
+-- Test cases
 SELECT *
 FROM Customer
 GO
 
+---------------------------------------------------------------------------
 -- 3. Create Orders table as follows: (1/2 mark)
 --    OrderID INT Not NULL
 --    CustomerID INT NOT NULL
 --    OrderDate datetime Not NULL
+
 
 IF OBJECT_ID('Orders') IS NOT NULL
 DROP TABLE Orders;
@@ -64,6 +75,7 @@ CREATE TABLE Orders
 );
 GO
 
+-- Populate date
 INSERT INTO Orders (OrderID, CustomerID, OrderDate)
 VALUES (3001, 1001, '20150801'),
        (3002, 1002, '20150802'),
@@ -71,10 +83,12 @@ VALUES (3001, 1001, '20150801'),
 	   (3004, 1004, '20150804');
 GO
 
+-- Test cases
 SELECT *
 FROM Orders
 GO
 
+---------------------------------------------------------------------------
 -- 4. Use triggers to impose the following constraints (4 marks)
 --    a) A Customer with Orders cannot be deleted from Customer table.
 
@@ -103,6 +117,17 @@ BEGIN
 END;
 GO
 
+-- Test cases
+delete from Customer
+where CustomerID = 1001; -- customer with order
+go
+
+delete from Customer
+where CustomerID = 1005; -- customer without order
+go
+
+
+---------------------------------------------------------------------------
 --    b) Create a custom error and use Raiserror to notify.
 
 IF OBJECT_ID('tr_CustomerDML', 'TR') IS NOT NULL
@@ -129,6 +154,12 @@ BEGIN
 END;
 GO
 
+-- Test cases
+delete from Customer
+where CustomerID = 1001; -- customer with order but deleted with error message
+go
+
+---------------------------------------------------------------------------
 --    c) If CustomerID is updated in Customers, 
 --       referencing rows in Orders must be updated accordingly.
 
@@ -164,6 +195,15 @@ BEGIN
 END;
 GO
 
+
+-- Test cases
+
+UPDATE Customer
+SET CustomerID = '1010'
+WHERE CustomerID = 1001;
+
+
+---------------------------------------------------------------------------
 --    d) Updating and Insertion of rows in Orders table must verify 
 --       that CustomerID exists in Customer table, otherwise Raiserror to notify.
 
@@ -200,9 +240,16 @@ END;
 GO
 
 
+-- Test cases --
+
 -- pass
 INSERT INTO Orders (OrderID, CustomerID, OrderDate)
 VALUES (3005, 1001, '20150806');
+GO
+
+update Orders
+set OrderID = 4001
+where OrderID = 3001;
 go
 
 -- fail
@@ -220,7 +267,145 @@ GO
 
 SELECT *
 FROM Customer
+
+go
+
+---------------------------------------------------------------------------
+-- 5. Create a function named CheckName to check 
+--    that the Firstname and Lastname of a customer are not the same. (2 marks)
+
+if OBJECT_ID('fn_CheckName', 'fn') is not null
+drop function fn_CheckName;
+go
+
+CREATE FUNCTION fn_CheckName
+(
+    @FirstName AS VARCHAR(50),
+    @LastName AS VARCHAR(50)
+)
+RETURNS INT 
+AS 
+BEGIN
+	DECLARE @NameCount as INT
+    SELECT @NameCount =  COUNT(*)
+	FROM Customer
+	WHERE @FirstName = FirstName AND @LastName = LastName
+	GROUP BY FirstName
+	RETURN @NameCount
+END;
 GO
+
+-- Initial Data --
+IF OBJECT_ID('Customer') IS NOT NULL
+DROP TABLE Customer;
+GO
+
+CREATE TABLE Customer 
+(
+  CustomerID INT NOT NULL,
+  FirstName NVARCHAR(50) NOT NULL,
+  LastName NVARCHAR(50) NOT NULL
+);
+GO
+
+INSERT INTO Customer (CustomerID, FirstName, LastName)
+VALUES (1001, 'John', 'Smith'),
+       (1002, 'Tom', 'Johnson'),
+	   (1003, 'Rob', 'Brown'),
+	   (1004, 'James', 'Miller'),
+	   (1005, 'Peter', 'Tylor');
+GO
+
+SELECT *
+FROM Customer
+GO
+
+-- Test cases --
+-- declare @FirstName AS VARCHAR(50)= 'Young', @LastName AS VARCHAR(50) = 'Choi';
+declare @FirstName AS VARCHAR(50)= 'John', @LastName AS VARCHAR(50) = 'Smith';
+declare @result as int
+    SELECT @result = COUNT(*)
+	FROM Customer
+	WHERE @FirstName = FirstName AND @LastName = LastName
+	GROUP BY FirstName;
+go
+
+select dbo.fn_CheckName('John', 'Smith');
+go
+
+execute dbo.fn_CheckName 
+	@FirstName = 'John', 
+	@Lastname = 'Smith';
+go
+
+
+
+
+---------------------------------------------------------------------------
+-- 6. Create a stored procedure called Proc_InsertCustomer 
+--    that would take Firstname and Lastname and optional CustomerID 
+--    as parameters and Insert into Customer table.
+--    > If CustomerID is not provided, increment the last CustomerID and use that.
+--    > Use the CheckName function to verify that the customer name is correct. (4 marks)
+
+IF OBJECT_ID('Proc_InsertCustomer', 'P') IS NOT NULL
+DROP PROC Proc_InsertCustomer;
+GO
+
+CREATE PROCEDURE Proc_InsertCustomer 
+	@CustomerID as INT =  0,	-- default value, to make the parameter optional
+	@FirstName as nVARCHAR(50), 
+	@LastName as nVARCHAR(50)
+AS
+BEGIN
+	SET NOCOUNT ON;
+	-- Check invalid or empty customer id
+	IF @CustomerID < 1000 OR @CustomerID > 9999  -- check range
+	BEGIN
+		-- SET @CustomerID = (SELECT MAX(CustomerID) + 1 FROM Customer)
+		SELECT @CustomerID = (MAX(CustomerID) + 1) FROM Customer
+		print 'Invalid CustomerID - New CustomerID is allocated : ' + convert(varchar, @CustomerID)
+	END
+	-- To prevent from inserting a same name
+	declare @DuplicationCheck int;
+	set @DuplicationCheck = (select dbo.fn_CheckName (@FirstName,@LastName))
+	if @DuplicationCheck > 0
+	begin
+		print 'The same name exists in the Customer table: ' + @FirstName + ' ' + @LastName + ' ' 
+		print 'Please double check! Proc_InsertCustomer terminated.'
+		print 'Number of duplication: ' + convert (varchar, @DuplicationCheck)
+		return
+	end
+	-- 
+	INSERT INTO Customer (CustomerID, FirstName, LastName)
+	VALUES ( @CustomerID, @FirstName, @LastName); 
+	RETURN;
+END;
+GO
+
+exec Proc_InsertCustomer 
+	@CustomerID = 1022, 
+	@FirstName = 'Tim', 
+	@LastName = 'Smith';
+
+CREATE PROCEDURE dbo.Sample_Procedure 
+    @param1 int = 0,
+    @param2 int  
+AS
+    SELECT @param1,@param2 
+RETURN 0 
+EXEC Proc_InsertCustomer @FirstName ='AAb', @LastName ='BBc', @CustomerID = 1009;
+EXEC Proc_InsertCustomer @customerID = -1;
+go
+
+select *
+from Customer
+
+select max(CustomerID)
+from Customer
+
+delete from Customer
+where CustomerID = 0;
 
 INSERT INTO Customer (CustomerID, FirstName, LastName)
 VALUES (1001, 'John', 'Smith');
@@ -240,8 +425,9 @@ where CustomerID = 1005;
 
 select c.CustomerID, c.FirstName, c.LastName, o.OrderID, o.OrderDate 
 from Customer as c
-left join Orders as o
+join Orders as o
 on c.CustomerID = o.CustomerID
+where c.CustomerID = 1001
 go
 
 select c.CustomerID, c.FirstName, c.LastName, o.OrderID, o.OrderDate 
